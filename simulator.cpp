@@ -73,12 +73,21 @@ int main(int argc, char **argv) {
 
     orcs_engine.simulator_alive = true;
 
-
     /// Start CLOCK for all the components
     while (orcs_engine.simulator_alive) {
         orcs_engine.processor->clock();
         orcs_engine.global_cycle++;
     }
+
+    // IMPRESSÃO DA BTB NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO
+        for (int i = 0; i < 1024; ++i)
+        {
+          for (int j = 0; j < 4; ++j)
+          {
+            printf("PC = %ld, LRU = %ld | ", orcs_engine.processor->btb[i][j].pc, orcs_engine.processor->btb[i][j].lru);
+          }
+          printf("\n");
+        }
 
 	ORCS_PRINTF("End of Simulation\n")
 	orcs_engine.trace_reader->statistics();
