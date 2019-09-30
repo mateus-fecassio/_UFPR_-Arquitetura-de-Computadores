@@ -80,18 +80,30 @@ int main(int argc, char **argv) {
     }
 
     // IMPRESSÃO DA BTB NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO
+        /*
         for (int i = 0; i < 1024; ++i)
         {
           for (int j = 0; j < 4; ++j)
           {
-            printf("PC = %ld, LRU = %ld | ", orcs_engine.processor->btb[i][j].pc, orcs_engine.processor->btb[i][j].lru);
+            printf("TAG = %ld, LRU = %ld | ", orcs_engine.processor->btb[i][j].tag, orcs_engine.processor->btb[i][j].lru);
           }
           printf("\n");
         }
+        */
+        //
+        for (int i = 0; i < 1024; ++i)
+        {
+          //for (int j = 0; j < 4; ++j)
+          //{
+            printf("  %d  |", orcs_engine.processor->bht[i].counter);
+          //}
+          printf("\n");
+        }
+        //
 
 	ORCS_PRINTF("End of Simulation\n")
 	orcs_engine.trace_reader->statistics();
-    orcs_engine.processor->statistics();
+  orcs_engine.processor->statistics();
 
-    return(EXIT_SUCCESS);
+  return(EXIT_SUCCESS);
 };
