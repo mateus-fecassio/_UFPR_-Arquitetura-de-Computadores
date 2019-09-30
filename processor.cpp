@@ -78,6 +78,7 @@ void processor_t::clock() {
 							orcs_engine.processor->btb[emptyRow][emptyCol].lru = orcs_engine.global_cycle;
 							orcs_engine.processor->btb_row_target = emptyRow;
 							orcs_engine.processor->btb_col_target = emptyCol;
+							is_empty = 0;
 						}
 						else
 						{
@@ -102,9 +103,6 @@ void processor_t::clock() {
 				{
 					if (!orcs_engine.processor->lock)
 					{
-						// atualização da BTB
-						orcs_engine.processor->btb[btb_row_target][btb_col_target].target = new_instruction.opcode_address;
-
 						//verificação e atualização da BHT
 						if (orcs_engine.processor->trust == 0)
 						{
@@ -150,6 +148,10 @@ void processor_t::clock() {
 							}
 							//else, conta acerto
 						}
+
+						// atualização da BTB
+						orcs_engine.processor->btb[btb_row_target][btb_col_target].target = new_instruction.opcode_address;
+						
 						orcs_engine.processor->lock = 1; //locked
 					}
 				}

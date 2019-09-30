@@ -90,16 +90,13 @@ int main(int argc, char **argv) {
           printf("\n");
         }
         */
-        //
+    // IMPRESSÃO DA BHT NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO
+        /*
         for (int i = 0; i < 1024; ++i)
         {
-          //for (int j = 0; j < 4; ++j)
-          //{
-            printf("  %d  |", orcs_engine.processor->bht[i].counter);
-          //}
-          printf("\n");
+            printf("  %d  ", orcs_engine.processor->bht[i].counter);
         }
-        //
+        */
 
 	ORCS_PRINTF("End of Simulation\n")
 	orcs_engine.trace_reader->statistics();
