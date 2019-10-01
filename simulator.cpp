@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 
     /// Start CLOCK for all the components
     while (orcs_engine.simulator_alive) {
-        orcs_engine.processor->clock();
+        orcs_engine.processor->clock_BHT();
         orcs_engine.global_cycle++;
     }
 

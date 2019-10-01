@@ -41,6 +41,6 @@ class processor_t
 		// ====================================================================
 		processor_t();
 	    void allocate();
-	    void clock();
+	    void clock_BHT();
 	    void statistics();
 };

@@ -12,7 +12,8 @@ void processor_t::allocate() {
 };
 
 // =====================================================================
-void processor_t::clock() {
+void processor_t::clock_BHT()
+{
 
 	/// Get the next instruction from the trace
 	opcode_package_t new_instruction;
@@ -151,13 +152,14 @@ void processor_t::clock() {
 
 						// atualização da BTB
 						orcs_engine.processor->btb[btb_row_target][btb_col_target].target = new_instruction.opcode_address;
-						
+
 						orcs_engine.processor->lock = 1; //locked
 					}
 				}
 			} //end else
 	} //else caso haja instruções
 };
+
 
 // =====================================================================
 void processor_t::statistics() {
