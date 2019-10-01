@@ -24,7 +24,7 @@ class processor_t
 
     public:
       btb_line_t btb[1024][4];
-      bht_line_t bht[1024];
+      bht_line_t bht[1024][4];
       uint64_t latency;
       uint64_t btb_miss;  //conta a quantidade de miss da BTB
       uint64_t bht_miss;  //conta a quantidade de miss da BHT
@@ -41,6 +41,6 @@ class processor_t
 		// ====================================================================
 		processor_t();
 	    void allocate();
-	    void clock();
+	    void clock_BHT();
 	    void statistics();
 };

@@ -8,11 +8,11 @@ processor_t::processor_t() {
 // =====================================================================
 void processor_t::allocate() {
 	memset (orcs_engine.processor->btb, 0, sizeof(uint64_t)*3*1024*4);
-	memset (orcs_engine.processor->bht, 0, sizeof(int)*1024);
+	memset (orcs_engine.processor->bht, 0, sizeof(int)*1024*4);
 };
 
 // =====================================================================
-void processor_t::clock()
+void processor_t::clock_BHT()
 {
 
 	/// Get the next instruction from the trace
@@ -95,7 +95,8 @@ void processor_t::clock()
 					} //if (!hit)
 					else //if (hit)
 					{
-						orcs_engine.processor->trust = orcs_engine.processor->bht[index].counter;
+						orcs_engine.processor->trust = orcs_engine.processor->bht[index][j_hit].counter;
+						//orcs_engine.processor->trust = orcs_engine.processor->bht[index].counter;
 						orcs_engine.processor->btb_row_target = index;
 						orcs_engine.processor->btb_col_target = j_hit;
 					}
@@ -109,7 +110,7 @@ void processor_t::clock()
 						{
 							if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
 							{
-								orcs_engine.processor->bht[btb_row_target].counter ++;
+								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter ++;
 								orcs_engine.processor->bht_miss ++;
 							}
 							//else, conta acerto
@@ -118,12 +119,12 @@ void processor_t::clock()
 						{
 							if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
 							{
-								orcs_engine.processor->bht[btb_row_target].counter ++;
+								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter ++;
 								orcs_engine.processor->bht_miss ++;
 							}
 							else
 							{
-								orcs_engine.processor->bht[btb_row_target].counter --;
+								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter --;
 								//conta acerto
 							}
 						}
@@ -131,12 +132,12 @@ void processor_t::clock()
 						{
 							if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
 							{
-								orcs_engine.processor->bht[btb_row_target].counter ++;
+								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter ++;
 								//conta acerto
 							}
 							else
 							{
-								orcs_engine.processor->bht[btb_row_target].counter --;
+								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter --;
 								orcs_engine.processor->bht_miss ++;
 							}
 						}
@@ -144,7 +145,7 @@ void processor_t::clock()
 						{
 							if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target != new_instruction.opcode_address)
 							{
-								orcs_engine.processor->bht[btb_row_target].counter --;
+								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter --;
 								orcs_engine.processor->bht_miss ++;
 							}
 							//else, conta acerto
