@@ -7,8 +7,10 @@ processor_t::processor_t() {
 
 // =====================================================================
 void processor_t::allocate() {
-	memset (orcs_engine.processor->btb, 0, sizeof(uint64_t)*3*1024*4);
-	memset (orcs_engine.processor->bht, 0, sizeof(int)*1024*4);
+	memset (orcs_engine.processor->btb, 0, sizeof(btb_line_t)*1024*4);
+	memset (orcs_engine.processor->pht, 0, sizeof(pht_line_t)*1024);
+	memset (orcs_engine.processor->t_cache, 0, sizeof(cache_line_t)*512);
+	memset (orcs_engine.processor->nt_cache, 0, sizeof(cache_line_t)*512);
 };
 
 // =====================================================================

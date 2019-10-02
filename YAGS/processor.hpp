@@ -34,7 +34,7 @@ class processor_t
 
     public:
       btb_line_t btb[1024][4];
-      pht_line_t bht[1024];
+      pht_line_t pht[1024];
       cache_line_t t_cache[512];
       cache_line_t nt_cache[512];
       uint64_t latency;
