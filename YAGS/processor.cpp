@@ -12,7 +12,7 @@ void processor_t::allocate() {
 };
 
 // =====================================================================
-void processor_t::clock_BHT()
+void processor_t::clock_YAGS()
 {
 
 	/// Get the next instruction from the trace

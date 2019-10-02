@@ -10,11 +10,20 @@ class btb_line_t
     uint64_t lru;    //last recently used (mais velho)
 };
 
-class bht_line_t
+class pht_line_t
 {
   private:
 
   public:
+    int counter;
+};
+
+class cache_line_t
+{
+  private:
+
+  public:
+    uint64_t tag;
     int counter;
 };
 
@@ -24,10 +33,11 @@ class processor_t
 
     public:
       btb_line_t btb[1024][4];
-      bht_line_t bht[1024][4];
+      pht_line_t bht[1024];
+      cache_line_t t_cache[512];
+      cache_line_t nt_cache[512];
       uint64_t latency;
       uint64_t btb_miss;  //conta a quantidade de miss da BTB
-      uint64_t bht_miss;  //conta a quantidade de miss da BHT
       uint64_t cycles;
       uint64_t branches;
       int delay;
@@ -41,6 +51,6 @@ class processor_t
 		// ====================================================================
 		processor_t();
 	    void allocate();
-	    void clock_BHT();
+	    void clock_YAGS();
 	    void statistics();
 };
