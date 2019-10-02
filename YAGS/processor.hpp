@@ -25,6 +25,7 @@ class cache_line_t
   public:
     uint64_t tag;
     int counter;
+    //uint64_t lru;    //last recently used (mais velho)
 };
 
 class processor_t
