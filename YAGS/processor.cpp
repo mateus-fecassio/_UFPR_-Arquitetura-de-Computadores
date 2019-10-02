@@ -11,6 +11,8 @@ void processor_t::allocate() {
 	memset (orcs_engine.processor->pht, 0, sizeof(pht_line_t)*1024);
 	memset (orcs_engine.processor->t_cache, 0, sizeof(cache_line_t)*512);
 	memset (orcs_engine.processor->nt_cache, 0, sizeof(cache_line_t)*512);
+	orcs_engine.processor->bhr = 0;
+	orcs_engine.processor->mask = 0x1FF; //máscara com 23 0's e 9 1's
 };
 
 // =====================================================================
@@ -36,6 +38,7 @@ void processor_t::clock_YAGS()
 				{
 					orcs_engine.processor->branches ++;
 
+					//ACESSO À BTB
 					uint64_t index = new_instruction.opcode_address & 1023;
 					uint64_t tag = new_instruction.opcode_address >> 10;
 					uint64_t oldest_cycle = orcs_engine.global_cycle;
@@ -91,29 +94,77 @@ void processor_t::clock_YAGS()
 							orcs_engine.processor->btb_col_target = lastCol;
 						}
 						orcs_engine.processor->btb_miss ++;
+
 						//penalidade
 						orcs_engine.processor->delay = 14;
-						orcs_engine.processor->trust = 0;
 					} //if (!hit)
 					else //if (hit)
 					{
-						orcs_engine.processor->trust = orcs_engine.processor->bht[index][j_hit].counter;
+						//orcs_engine.processor->trust = orcs_engine.processor->bht[index][j_hit].counter;
 						//orcs_engine.processor->trust = orcs_engine.processor->bht[index].counter;
 						orcs_engine.processor->btb_row_target = index;
 						orcs_engine.processor->btb_col_target = j_hit;
 					}
+
+					//ACESSO À PHT
+					int choice_pred;
+					choice_pred = orcs_engine.processor->pht[index].counter;
+
+					//ACESSO ÀS CACHES
+					int index_c = new_instruction.opcode_address & 511; //pegar os 9 bits menos significativos
+					orcs_engine.processor->bhr = orcs_engine.processor->bhr & orcs_engine.processor->mask; //aplicar a máscara
+					index_c = index_c ^ orcs_engine.processor->bhr;
+					int tag_c = new_instruction.opcode_address & 255; //pegar os 8 bits menos significativos
+
+					if (choice_pred == 0 || choice_pred == 1) //acessa a TAKEN CACHE
+					{
+						if (tag_c == orcs_engine.processor->t_cache[index_c].tag)
+						{
+							//usar a predição desse contador saturado
+							orcs_engine.processor->trust = orcs_engine.processor->t_cache[index_c].counter;
+							orcs_engine.processor->cache_hit = 1;
+						}
+						else
+						{
+							//usar a predição da choice
+							orcs_engine.processor->trust = choice_pred;
+							orcs_engine.processor->cache_hit = 0;
+						}
+						orcs_engine.processor->chosen_cache = 1;
+					}
+					else //acessa a NOT TAKEN CACHE
+					{
+						if (tag_c == orcs_engine.processor->nt_cache[index_c].tag)
+						{
+							//usar a predição desse contador saturado
+							orcs_engine.processor->trust = orcs_engine.processor->nt_cache[index_c].counter;
+							orcs_engine.processor->cache_hit = 1;
+						}
+						else
+						{
+							//usar a predição da choice
+							orcs_engine.processor->trust = choice_pred;
+							orcs_engine.processor->cache_hit = 0;
+						}
+						orcs_engine.processor->chosen_cache = 0;
+					}
+
+					orcs_engine.processor->index_cache = index_c;
+					orcs_engine.processor->tag_cache = tag_c;
+
 				} //end if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_BRANCH)
 				else //if new_instruction.opcode_operation != INSTRUCTION_OPERATION_BRANCH
 				{
 					if (!orcs_engine.processor->lock)
 					{
-						//verificação e atualização da BHT
+						//atualização da PHT
 						if (orcs_engine.processor->trust == 0)
 						{
 							if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
 							{
-								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter ++;
-								orcs_engine.processor->bht_miss ++;
+								if (orcs_engine.processor->pht[btb_row_target].counter < 3)
+									orcs_engine.processor->pht[btb_row_target].counter ++;
+								orcs_engine.processor->pht_miss ++;
 							}
 							//else, conta acerto
 						}
@@ -121,12 +172,14 @@ void processor_t::clock_YAGS()
 						{
 							if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
 							{
-								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter ++;
-								orcs_engine.processor->bht_miss ++;
+								if (orcs_engine.processor->pht[btb_row_target].counter < 3)
+									orcs_engine.processor->pht[btb_row_target].counter ++;
+								orcs_engine.processor->pht_miss ++;
 							}
 							else
 							{
-								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter --;
+								if (orcs_engine.processor->pht[btb_row_target].counter > 0)
+									orcs_engine.processor->pht[btb_row_target].counter --;
 								//conta acerto
 							}
 						}
@@ -134,26 +187,43 @@ void processor_t::clock_YAGS()
 						{
 							if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
 							{
-								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter ++;
+								if (orcs_engine.processor->pht[btb_row_target].counter < 3)
+									orcs_engine.processor->pht[btb_row_target].counter ++;
 								//conta acerto
 							}
 							else
 							{
-								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter --;
-								orcs_engine.processor->bht_miss ++;
+								if (orcs_engine.processor->pht[btb_row_target].counter > 0)
+									orcs_engine.processor->pht[btb_row_target].counter --;
+								orcs_engine.processor->pht_miss ++;
 							}
 						}
 						else if (orcs_engine.processor->trust == 3)
 						{
 							if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target != new_instruction.opcode_address)
 							{
-								orcs_engine.processor->bht[btb_row_target][btb_col_target].counter --;
-								orcs_engine.processor->bht_miss ++;
+								if (orcs_engine.processor->pht[btb_row_target].counter > 0)
+									orcs_engine.processor->pht[btb_row_target].counter --;
+								orcs_engine.processor->pht_miss ++;
 							}
 							//else, conta acerto
 						}
 
-						// atualização da BTB
+						//atualização de uma das caches
+						if (orcs_engine.processor->chosen_cache == 0)
+						{
+							//not-taken
+							
+						}
+						else
+						{
+							//taken
+						}
+
+
+
+
+						//atualização da BTB
 						orcs_engine.processor->btb[btb_row_target][btb_col_target].target = new_instruction.opcode_address;
 
 						orcs_engine.processor->lock = 1; //locked
