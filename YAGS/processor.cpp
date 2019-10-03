@@ -80,7 +80,7 @@ void processor_t::clock_YAGS()
 					} //end for (int j = 0; j < 4; ++j)
 
 					// verificação do HIT ou MISS
-					if (!hit)
+					if (!hit) //miss
 					{
 						if (is_empty)
 						{
@@ -104,8 +104,6 @@ void processor_t::clock_YAGS()
 					} //if (!hit)
 					else //if (hit)
 					{
-						//orcs_engine.processor->trust = orcs_engine.processor->bht[index][j_hit].counter;
-						//orcs_engine.processor->trust = orcs_engine.processor->bht[index].counter;
 						orcs_engine.processor->btb_row_target = index;
 						orcs_engine.processor->btb_col_target = j_hit;
 					}
@@ -116,7 +114,7 @@ void processor_t::clock_YAGS()
 					//ACESSO ÀS CACHES
 					index_c = new_instruction.opcode_address & 511; //pegar os 9 bits menos significativos
 					orcs_engine.processor->bhr = orcs_engine.processor->bhr & orcs_engine.processor->mask; //aplicar a máscara
-					index_c = index_c ^ orcs_engine.processor->bhr;
+					index_c = index_c ^ orcs_engine.processor->bhr; //operação XOR
 					tag_c = new_instruction.opcode_address & 255; //pegar os 8 bits menos significativos
 
 					if (choice_pred == 0 || choice_pred == 1) //acessa a TAKEN CACHE
