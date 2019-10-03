@@ -34,6 +34,10 @@ void processor_t::clock_YAGS()
 			}
 			else
 			{
+				int index_c;
+				int tag_c;
+				int choice_pred;
+
 				if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_BRANCH)
 				{
 					orcs_engine.processor->branches ++;
@@ -107,14 +111,13 @@ void processor_t::clock_YAGS()
 					}
 
 					//ACESSO À PHT
-					int choice_pred;
 					choice_pred = orcs_engine.processor->pht[index].counter;
 
 					//ACESSO ÀS CACHES
-					int index_c = new_instruction.opcode_address & 511; //pegar os 9 bits menos significativos
+					index_c = new_instruction.opcode_address & 511; //pegar os 9 bits menos significativos
 					orcs_engine.processor->bhr = orcs_engine.processor->bhr & orcs_engine.processor->mask; //aplicar a máscara
 					index_c = index_c ^ orcs_engine.processor->bhr;
-					int tag_c = new_instruction.opcode_address & 255; //pegar os 8 bits menos significativos
+					tag_c = new_instruction.opcode_address & 255; //pegar os 8 bits menos significativos
 
 					if (choice_pred == 0 || choice_pred == 1) //acessa a TAKEN CACHE
 					{
@@ -153,10 +156,40 @@ void processor_t::clock_YAGS()
 					orcs_engine.processor->tag_cache = tag_c;
 
 				} //end if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_BRANCH)
+//---------------------------------**********************---------------------------------
 				else //if new_instruction.opcode_operation != INSTRUCTION_OPERATION_BRANCH
 				{
 					if (!orcs_engine.processor->lock)
 					{
+						index_c = orcs_engine.processor->index_cache;
+						tag_c = orcs_engine.processor->tag_cache;
+//------------------------------------------------------------------------------------------------------------------------
+						//atualização de uma das caches
+						if (orcs_engine.processor->chosen_cache == 0)
+						{
+							//not-taken
+							if (orcs_engine.processor->cache_hit)
+							{
+								
+							}
+							else //não houve cache hit
+							{
+								//se a choice cache indica taken, mas houve not taken, atualizar (ou adicionar)
+								if (orcs_engine.processor->pht[btb_row_target].counter == 2 || orcs_engine.processor->pht[btb_row_target].counter == 3)
+									if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target != new_instruction.opcode_address)
+									{
+										//adiciona a tag desse branch na cache
+										orcs_engine.processor->nt_cache[index_c].tag = tag_c;
+										if (orcs_engine.processor->nt_cache[index_c].counter > 0)
+											orcs_engine.processor->nt_cache[index_c].counter --;
+									}
+							}
+						}
+						else
+						{
+							//taken
+						}
+//------------------------------------------------------------------------------------------------------------------------
 						//atualização da PHT
 						if (orcs_engine.processor->trust == 0)
 						{
@@ -209,16 +242,7 @@ void processor_t::clock_YAGS()
 							//else, conta acerto
 						}
 
-						//atualização de uma das caches
-						if (orcs_engine.processor->chosen_cache == 0)
-						{
-							//not-taken
-							
-						}
-						else
-						{
-							//taken
-						}
+
 
 
 
