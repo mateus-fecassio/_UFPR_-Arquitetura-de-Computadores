@@ -91,30 +91,36 @@ int main(int argc, char **argv) {
         }
         */
 
+    // IMPRESSÃO DA PHT NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO
+        /*
+        for (int i = 0; i < 1024; ++i)
+        {
+            printf("  %d  ", orcs_engine.processor->pht[i].counter);
+        }
+        */
+
+    // IMPRESSÃO DA T_CACHE NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO [VETOR]
+        /*
+        printf("T_CACHE:\n");
+        for (int i = 0; i < 512; ++i)
+        {
+            printf("  TAG = %d    COUNTER = %d  \n", orcs_engine.processor->t_cache[i].tag, orcs_engine.processor->t_cache[i].counter);
+        }
+        printf("\n\n\n\n");
+        */
+
     // IMPRESSÃO DA BHT NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO [VETOR]
         /*
-        for (int i = 0; i < 1024; ++i)
+        printf("NT_CACHE:\n");
+        for (int i = 0; i < 512; ++i)
         {
-            printf("  %d  ", orcs_engine.processor->bht[i].counter);
+            printf("  TAG = %d    COUNTER = %d  \n", orcs_engine.processor->nt_cache[i].tag, orcs_engine.processor->nt_cache[i].counter);
         }
+        printf("\n\n\n\n");
         */
-
-    // IMPRESSÃO DA BHT NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO [MATRIZ]
-        /*
-        for (int i = 0; i < 1024; ++i)
-        {
-          for (int j = 0; j < 4; ++j)
-          {
-            printf("  %d  ", orcs_engine.processor->bht[i][j].counter);
-          }
-          printf("\n");
-        }
-        */
-
-
 	ORCS_PRINTF("End of Simulation\n")
 	orcs_engine.trace_reader->statistics();
-  //orcs_engine.processor->statistics();
+  orcs_engine.processor->statistics();
 
   return(EXIT_SUCCESS);
 };

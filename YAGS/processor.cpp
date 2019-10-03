@@ -152,6 +152,14 @@ void processor_t::clock_YAGS()
 						orcs_engine.processor->chosen_cache = 0;
 					}
 
+					//atualização da BHR
+					orcs_engine.processor->bhr = orcs_engine.processor->bhr << 1;
+					orcs_engine.processor->bhr = orcs_engine.processor->bhr & orcs_engine.processor->mask;
+					if (orcs_engine.processor->trust == 0 || orcs_engine.processor->trust == 1)
+						orcs_engine.processor->bhr = orcs_engine.processor->bhr | 0;
+					else
+						orcs_engine.processor->bhr = orcs_engine.processor->bhr | 1;
+
 					orcs_engine.processor->index_cache = index_c;
 					orcs_engine.processor->tag_cache = tag_c;
 
@@ -167,14 +175,23 @@ void processor_t::clock_YAGS()
 						//atualização de uma das caches
 						if (orcs_engine.processor->chosen_cache == 0)
 						{
-							//not-taken
+							//CACHE 0: not-taken
 							if (orcs_engine.processor->cache_hit)
 							{
-								
+								if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
+								{
+									if (orcs_engine.processor->nt_cache[index_c].counter < 3)
+										orcs_engine.processor->nt_cache[index_c].counter ++;
+								}
+								else
+								{
+									if (orcs_engine.processor->nt_cache[index_c].counter > 0)
+										orcs_engine.processor->nt_cache[index_c].counter --;
+								}
 							}
 							else //não houve cache hit
 							{
-								//se a choice cache indica taken, mas houve not taken, atualizar (ou adicionar)
+								//se a choice PHT indica taken, mas houve not taken, atualizar (ou adicionar)
 								if (orcs_engine.processor->pht[btb_row_target].counter == 2 || orcs_engine.processor->pht[btb_row_target].counter == 3)
 									if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target != new_instruction.opcode_address)
 									{
@@ -187,7 +204,32 @@ void processor_t::clock_YAGS()
 						}
 						else
 						{
-							//taken
+							//CACHE 1: taken
+							if (orcs_engine.processor->cache_hit)
+							{
+								if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
+								{
+									if (orcs_engine.processor->t_cache[index_c].counter < 3)
+										orcs_engine.processor->t_cache[index_c].counter ++;
+								}
+								else
+								{
+									if (orcs_engine.processor->t_cache[index_c].counter > 0)
+										orcs_engine.processor->t_cache[index_c].counter --;
+								}
+							}
+							else //não houve cache hit
+							{
+								//se a choice PHT indica not taken, mas houve taken, atualizar (ou adicionar)
+								if (orcs_engine.processor->pht[btb_row_target].counter == 0 || orcs_engine.processor->pht[btb_row_target].counter == 1)
+									if (orcs_engine.processor->btb[btb_row_target][btb_col_target].target == new_instruction.opcode_address)
+									{
+										//adiciona a tag desse branch na cache
+										orcs_engine.processor->t_cache[index_c].tag = tag_c;
+										if (orcs_engine.processor->t_cache[index_c].counter > 0)
+											orcs_engine.processor->t_cache[index_c].counter --;
+									}
+							}
 						}
 //------------------------------------------------------------------------------------------------------------------------
 						//atualização da PHT
@@ -241,12 +283,7 @@ void processor_t::clock_YAGS()
 							}
 							//else, conta acerto
 						}
-
-
-
-
-
-
+//------------------------------------------------------------------------------------------------------------------------
 						//atualização da BTB
 						orcs_engine.processor->btb[btb_row_target][btb_col_target].target = new_instruction.opcode_address;
 
@@ -267,10 +304,11 @@ void processor_t::statistics() {
 	printf("Cycles: %ld\n", orcs_engine.processor->cycles);
 	printf("Branches: %ld\n", orcs_engine.processor->branches);
 	printf("BTB misses: %ld\n", orcs_engine.processor->btb_miss);
-	printf("BHT misses: %ld\n", orcs_engine.processor->bht_miss);
+	printf("PHT misses: %ld\n", orcs_engine.processor->pht_miss);
 
 	printf("---ACCURACY---\n");
 	float accuracy;
-	accuracy = (1 - (float)orcs_engine.processor->bht_miss / (float)(orcs_engine.processor->branches - orcs_engine.processor->btb_miss));
+	accuracy = (1 - (float)orcs_engine.processor->pht_miss / (float)(orcs_engine.processor->branches - orcs_engine.processor->btb_miss));
 	printf("%g\n", accuracy);
+
 };

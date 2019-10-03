@@ -23,7 +23,7 @@ class cache_line_t
   private:
 
   public:
-    uint64_t tag;
+    int tag;
     int counter;
     //uint64_t lru;    //last recently used (mais velho)
 };
@@ -41,6 +41,7 @@ class processor_t
       unsigned int mask;
       uint64_t latency;
       uint64_t pht_miss;  //conta a quantidade de miss da PHT
+      uint64_t btb_miss;  //conta a quantidade de miss da BTB
       uint64_t cycles;
       uint64_t branches;
       int delay;
