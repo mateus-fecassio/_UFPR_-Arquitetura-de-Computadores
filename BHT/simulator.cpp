@@ -75,10 +75,43 @@ int main(int argc, char **argv) {
 
     /// Start CLOCK for all the components
     while (orcs_engine.simulator_alive) {
-        orcs_engine.processor->clock_STRIDE();
+        orcs_engine.processor->clock_BHT();
         orcs_engine.global_cycle++;
     }
-    
+
+    // IMPRESSÃO DA BTB NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO
+        /*
+        for (int i = 0; i < 1024; ++i)
+        {
+          for (int j = 0; j < 4; ++j)
+          {
+            printf("TAG = %ld, LRU = %ld | ", orcs_engine.processor->btb[i][j].tag, orcs_engine.processor->btb[i][j].lru);
+          }
+          printf("\n");
+        }
+        */
+
+    // IMPRESSÃO DA BHT NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO [VETOR]
+        /*
+        for (int i = 0; i < 1024; ++i)
+        {
+            printf("  %d  ", orcs_engine.processor->bht[i].counter);
+        }
+        */
+
+    // IMPRESSÃO DA BHT NA FINALIZAÇÃO DO PROCESSAMENTO DO TRAÇO [MATRIZ]
+        /*
+        for (int i = 0; i < 1024; ++i)
+        {
+          for (int j = 0; j < 4; ++j)
+          {
+            printf("  %d  ", orcs_engine.processor->bht[i][j].counter);
+          }
+          printf("\n");
+        }
+        */
+
+
 	ORCS_PRINTF("End of Simulation\n")
 	orcs_engine.trace_reader->statistics();
   orcs_engine.processor->statistics();
