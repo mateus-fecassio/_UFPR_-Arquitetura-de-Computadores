@@ -5,10 +5,11 @@ class cache_line_t
   private:
 
   public:
-    uint64_t valid;  //verifica se a linha está suja (0 = não, 1 = sim)
-    uint64_t tag;    //guarda o restante do PC
-    //uint64_t data; //dado
-    uint64_t lru;    //last recently used (mais velho)
+    uint64_t valid;     //verifica se a linha está válida (0 = não, 1 = sim)
+    uint64_t tag;       //guarda o restante do endereço de memória
+    //uint64_t data;    //dado
+    uint64_t ready_cycle;
+    uint64_t lru;       //last recently used (mais velho)
 };
 
 
@@ -21,6 +22,8 @@ class stride_line_t
     uint64_t last_address;  //guarda o último endereço de memória associado a aquele PC
     uint64_t stride;        //guarda o deslocamento calculado
     uint64_t status;        //confiabilidade do dado (0 = inativo, 1 = treinamento, 2 = ativo)
+
+    uint64_t counter;       //usado para a necessidade de substituição
 };
 
 class processor_t
@@ -42,4 +45,5 @@ class processor_t
 	    void allocate();
 	    void clock_STRIDE();
 	    void statistics();
+      bool check_L2(uint64_t address);
 };
