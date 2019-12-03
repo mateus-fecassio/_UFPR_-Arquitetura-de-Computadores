@@ -5,13 +5,13 @@ class cache_line_t
   private:
 
   public:
-    int clean;          //verifica se a linha está limpa (0 = não(suja), 1 = sim)
-    uint64_t tag;       //guarda o restante do endereço de memória
-    //uint64_t data;    //dado
-    uint64_t ready_cycle;
-    uint64_t lru;       //last recently used (mais velho)
+    int clean;                //verifica se a linha está limpa (0 = não(suja), 1 = sim)
+    uint64_t tag;             //guarda o restante do endereço de memória
+    //uint64_t data;          //dado
+    uint64_t ready_cycle;     //guarda o ciclo de clock que aquele dado estará pronto
+    uint64_t lru;             //last recently used (mais velho)
 
-    int load_prefetch;  //usado para diferenciar se a linha foi fruto de um prefetch (0 = NÃO, 1 = SIM)
+    int load_prefetch;        //usado para diferenciar se a linha foi fruto de um prefetch (0 = NÃO, 1 = SIM)
 };
 
 
@@ -24,8 +24,7 @@ class stride_line_t
     uint64_t last_address;  //guarda o último endereço de memória associado a aquele PC
     uint64_t stride;        //guarda o deslocamento calculado
     uint64_t confidence;    //confiabilidade do dado (0 = inativo, 1 = treinamento, 2 = ativo)
-
-    uint64_t counter;       //usado para a necessidade de substituição
+    uint64_t counter;       //usado para a necessidade de substituição na tabela do stride prefetcher
 };
 
 class processor_t
@@ -38,8 +37,8 @@ class processor_t
       stride_line_t stride[16];
       uint64_t latency;
       uint64_t cycles;
-      uint64_t correctPF;
-      uint64_t incorrectPF;
+      uint64_t correctPF;       //contador de número de prefetches feitos e usados
+      uint64_t incorrectPF;     //contador de número de prefetches feitos e que sofreram eviction (e não foram utilizados)
 
       uint64_t L1_hit;
       uint64_t L1_access;

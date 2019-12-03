@@ -231,12 +231,16 @@ void processor_t::clock_STRIDE()
 		orcs_engine.processor->cycles ++;
 		if (orcs_engine.processor->latency > 0)
 		{
-			orcs_engine.processor->latency--;
+			uint64_t contador;
+
+			//penalidade
+			for(contador = orcs_engine.processor->latency; contador != 0; --contador)
+
+			orcs_engine.processor->latency = 0;
 		}
-		else
+
+		if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD)
 		{
-			if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_MEM_LOAD)
-			{
 				bool cache_L1_hit = 0;
 				bool cache_L2_hit = 0;
 				int j;
@@ -417,8 +421,8 @@ void processor_t::clock_STRIDE()
 
 //----------------------------------------------------------------------------------------------------
 
-			else if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_MEM_STORE)
-			{
+		else if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_MEM_STORE)
+		{
 				bool cache_L1_hit = 0;
 				bool cache_L2_hit = 0;
 				int j;
@@ -463,8 +467,7 @@ void processor_t::clock_STRIDE()
 					//COLOCAR A LINHA NA CACHE L1, passando o parâmetro 2(escrita), o endereço para a escrita e quando esse dado estará disponível
 					put_cache_L1(2, new_instruction.write_address, orcs_engine.global_cycle+205);
 				}
-			} //end if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_MEM_STORE)
-		} //end if (orcs_engine.processor->latency < 0)
+		} //end if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_MEM_STORE)
 	} //else caso haja instruções
 };
 
@@ -481,8 +484,24 @@ void processor_t::statistics() {
 	printf("L1 Cache Hit Ratio: %g\n", (float)orcs_engine.processor->L1_hit / (float)orcs_engine.processor->L1_access);
 	printf("L2 Cache Hit: %ld\n", orcs_engine.processor->L2_hit);
 	printf("L2 Cache Hit Ratio: %g\n", (float)orcs_engine.processor->L2_hit / (float)orcs_engine.processor->L2_access);
+	printf("Prefetches CORRETOS: %ld\n", orcs_engine.processor->correctPF);
+	printf("Prefetches CORRETOS: %ld\n", orcs_engine.processor->incorrectPF);
 	printf("Taxa de acertos nos prefetches feitos: %g\n\n\n", (float)orcs_engine.processor->correctPF / (float)orcs_engine.processor->total_prefetches);
 
+	printf("HISTOGRAMA (em número)\n");
+	printf("< -200: %ld\n", orcs_engine.processor->class1);
+	printf("-199 a -150: %ld\n", orcs_engine.processor->class2);
+	printf("-149 a -100: %ld\n", orcs_engine.processor->class3);
+	printf("-99 a -50: %ld\n", orcs_engine.processor->class4);
+	printf("-49 a -1: %ld\n", orcs_engine.processor->class5);
+	printf("0: %ld\n", orcs_engine.processor->class6);
+	printf("1 a 49: %ld\n", orcs_engine.processor->class7);
+	printf("50 a 99: %ld\n", orcs_engine.processor->class8);
+	printf("100 a 149: %ld\n", orcs_engine.processor->class9);
+	printf("150 a 199: %ld\n", orcs_engine.processor->class10);
+	printf("> 200: %ld\n\n", orcs_engine.processor->class11);
+
+	printf("HISTOGRAMA (em taxa)\n");
 	printf("< -200: %g\n", (float)orcs_engine.processor->class1 / (float)orcs_engine.processor->correctPF);
 	printf("-199 a -150: %g\n", (float)orcs_engine.processor->class2 / (float)orcs_engine.processor->correctPF);
 	printf("-149 a -100: %g\n", (float)orcs_engine.processor->class3 / (float)orcs_engine.processor->correctPF);
