@@ -10,12 +10,34 @@ void processor_t::allocate() {
 	memset (orcs_engine.processor->CL1, 0, sizeof(cache_line_t)*256*4);
 	memset (orcs_engine.processor->CL2, 0, sizeof(cache_line_t)*2048*8);
 	memset (orcs_engine.processor->stride, 0, sizeof(stride_line_t)*16);
+
+	orcs_engine.processor->latency = 0;
+	orcs_engine.processor->cycles = 0;
+	orcs_engine.processor->correctPF = 0;
+	orcs_engine.processor->incorrectPF = 0;
+	orcs_engine.processor->L1_hit = 0;
+	orcs_engine.processor->L1_access = 0;
+	orcs_engine.processor->L2_hit = 0;
+	orcs_engine.processor->L2_access = 0;
+	orcs_engine.processor->total_prefetches = 0;
+	orcs_engine.processor->class1 = 0;
+	orcs_engine.processor->class2 = 0;
+	orcs_engine.processor->class3 = 0;
+	orcs_engine.processor->class4 = 0;
+	orcs_engine.processor->class5 = 0;
+	orcs_engine.processor->class6 = 0;
+	orcs_engine.processor->class7 = 0;
+	orcs_engine.processor->class8 = 0;
+	orcs_engine.processor->class9 = 0;
+	orcs_engine.processor->class10 = 0;
+	orcs_engine.processor->class11 = 0;
+
 };
 
 // =====================================================================
 bool processor_t::check_L2(uint64_t address) {
-	uint64_t index = new_instruction.read_address & 2047;
-	uint64_t tag = new_instruction.read_address >> 11;
+	uint64_t index = address & 2047;
+	uint64_t tag = address >> 11;
 	bool cache_L2_hit = 0;
 
 	for (int j = 0; j < 8; ++j)
@@ -23,10 +45,177 @@ bool processor_t::check_L2(uint64_t address) {
 		if (orcs_engine.processor->CL2[index][j].tag == tag)
 			cache_L2_hit = 1;
 	}
-	
+
 	return cache_L2_hit;
 };
 
+// =====================================================================
+bool processor_t::is_cacheL2_empty(uint64_t address) {
+	uint64_t index = address & 2047;
+	bool cache_L2_empty = 0;
+
+	for (int j = 0; j < 8; ++j)
+	{
+		if (orcs_engine.processor->CL2[index][j].tag == 0)
+			cache_L2_empty = 1;
+	}
+
+	return cache_L2_empty;
+};
+// =====================================================================
+void processor_t::put_cache_L2(int j, uint64_t address, int clean, int load, uint64_t ready_cycle, uint64_t lru) {
+	uint64_t index = address & 2047;
+	uint64_t tag = address >> 11;
+
+
+	//requisição de escrita do bloco escolhido na DRAM
+	//se esse campo ainda estiver setado como 1, significa que foi feito o prefetch dele, porém não foi utilizado
+	if (orcs_engine.processor->CL2[index][j].load_prefetch == 1)
+		orcs_engine.processor->incorrectPF++;
+
+
+	//ESCRITA DO BLOCO DA CACHE L1 NA CACHE L2
+	orcs_engine.processor->CL2[index][j].clean = clean;
+	orcs_engine.processor->CL2[index][j].load_prefetch = load;
+	orcs_engine.processor->CL2[index][j].tag = tag;
+	orcs_engine.processor->CL1[index][j].ready_cycle = ready_cycle;
+	orcs_engine.processor->CL1[index][j].lru = lru;
+};
+
+// =====================================================================
+int processor_t::free_cacheL2_block(uint64_t address) {
+	uint64_t index = address & 2047;
+	uint64_t oldest_cycle = orcs_engine.global_cycle;
+	bool is_empty = 0;
+	int j, chosen_column, empty_column;
+
+	for (j = 0; j < 8; ++j)
+	{
+		if (orcs_engine.processor->CL2[index][j].tag == 0)
+		{
+			is_empty = 1;
+			empty_column = j;
+		}
+
+		if (orcs_engine.processor->CL2[index][j].lru < oldest_cycle)
+		{
+			oldest_cycle = orcs_engine.processor->CL1[index][j].lru;
+			chosen_column = j;
+		}
+	}
+
+	if (is_empty)
+		return empty_column;
+	else
+		return chosen_column;
+};
+
+// =====================================================================
+int processor_t::free_cacheL1_block(uint64_t address) {
+	uint64_t index = address & 255;
+	uint64_t oldest_cycle = orcs_engine.global_cycle;
+	int j, chosen_column;
+
+	for (j = 0; j < 4; ++j)
+	{
+		if (orcs_engine.processor->CL1[index][j].lru < oldest_cycle)
+		{
+			oldest_cycle = orcs_engine.processor->CL1[index][j].lru;
+			chosen_column = j;
+		}
+	}
+
+	j = free_cacheL2_block(address);
+
+	int clean = orcs_engine.processor->CL1[index][chosen_column].clean;
+	int load = orcs_engine.processor->CL1[index][chosen_column].load_prefetch;
+	uint64_t ready_cycle = orcs_engine.processor->CL1[index][chosen_column].ready_cycle;
+	uint64_t lru = orcs_engine.processor->CL1[index][chosen_column].lru;
+
+
+	put_cache_L2(j, address, clean, load, ready_cycle, lru);
+
+	return chosen_column;
+};
+
+// =====================================================================
+void processor_t::put_cache_L1(int parameter, uint64_t address, uint64_t cycle) {
+	uint64_t index = address & 255;
+	uint64_t tag = address >> 8;
+	bool empty = 0;
+	int column = 0;
+	int j;
+
+	//procura por um espaço livre para colocar o dado
+	for (j = 0; j < 4; ++j)
+	{
+		if (orcs_engine.processor->CL1[index][j].tag == 0)
+		{
+			empty = 1;
+			column = j;
+		}
+	}
+
+	//se NÃO tiver espaço na L1 para colocar o dado
+	if (!empty)
+	{
+		//libero um espaço na cache L1 para colocar o dado
+		column = free_cacheL1_block(address);
+	}
+
+	//ESCRITA DO BLOCO NA CACHE
+	if (parameter == 1) //FRUTO DE UMA LEITURA
+	{
+		orcs_engine.processor->CL1[index][column].clean = 1;
+		orcs_engine.processor->CL1[index][column].load_prefetch = 1;
+	}
+	else
+	{
+		orcs_engine.processor->CL1[index][column].clean = 0;
+		orcs_engine.processor->CL1[index][column].load_prefetch = 0;
+	}
+
+	orcs_engine.processor->CL1[index][column].tag = tag;
+	orcs_engine.processor->CL1[index][column].ready_cycle = cycle;
+	orcs_engine.processor->CL1[index][column].lru = orcs_engine.global_cycle;
+};
+
+// =====================================================================
+void processor_t::determine_range(uint64_t a, uint64_t b){
+	uint64_t diff = abs(a - b);
+
+	if (a < b)
+	{
+		if (diff > 200)
+			orcs_engine.processor->class1++;
+		else if (diff > 150 && diff < 199)
+			orcs_engine.processor->class2++;
+		else if (diff > 100 && diff < 149)
+			orcs_engine.processor->class3++;
+		else if (diff > 50 && diff < 99)
+			orcs_engine.processor->class4++;
+		else if (diff > 1 && diff < 49)
+			orcs_engine.processor->class5++;
+
+	}
+	else if (a > b)
+	{
+		if (diff > 1 && diff < 49)
+			orcs_engine.processor->class7++;
+		else if (diff > 50 && diff < 99)
+			orcs_engine.processor->class8++;
+		else if (diff > 100 && diff < 149)
+			orcs_engine.processor->class9++;
+		else if (diff > 150 && diff < 199)
+			orcs_engine.processor->class10++;
+		else if (diff > 200)
+			orcs_engine.processor->class11++;
+	}
+	else if (a == b)
+	{
+		orcs_engine.processor->class6++;
+	}
+};
 // =====================================================================
 void processor_t::clock_STRIDE()
 {
@@ -54,13 +243,30 @@ void processor_t::clock_STRIDE()
 
 				//FAZER A BUSCA NA CACHE L1
 				orcs_engine.processor->latency = 1;
+				orcs_engine.processor->L1_access++;
 				uint64_t index = new_instruction.read_address & 255;
 				uint64_t tag = new_instruction.read_address >> 8;
 
 				for (j = 0; j < 4; ++j)
 				{
 					if (orcs_engine.processor->CL1[index][j].tag == tag)
-						cache_L1_hit = 1;
+					{
+						uint64_t a = orcs_engine.processor->CL1[index][j].ready_cycle;
+						uint64_t b = orcs_engine.global_cycle;
+
+						if (orcs_engine.processor->CL1[index][j].load_prefetch == 1)
+						{
+							orcs_engine.processor->CL1[index][j].load_prefetch = 0;
+							orcs_engine.processor->correctPF++;
+							determine_range(a, b);
+						}
+
+						if (b >= a) //significa que o dado já está na cache e pode ser usado
+						{
+							cache_L1_hit = 1;
+							orcs_engine.processor->L1_hit++;
+						}
+					}
 				}
 
 				//se não houve hit na cache L1
@@ -68,13 +274,33 @@ void processor_t::clock_STRIDE()
 				{
 					//FAZER A BUSCA NA CACHE L2
 					orcs_engine.processor->latency += 4;
+					orcs_engine.processor->L2_access++;
 					index = new_instruction.read_address & 2047;
 					tag = new_instruction.read_address >> 11;
 
 					for (j = 0; j < 8; ++j)
 					{
 						if (orcs_engine.processor->CL2[index][j].tag == tag)
-							cache_L2_hit = 1;
+						{
+							if (orcs_engine.processor->CL2[index][j].tag == tag)
+							{
+								uint64_t a = orcs_engine.processor->CL2[index][j].ready_cycle;
+								uint64_t b = orcs_engine.global_cycle;
+
+								if (orcs_engine.processor->CL2[index][j].load_prefetch == 1)
+								{
+									orcs_engine.processor->CL2[index][j].load_prefetch = 0;
+									orcs_engine.processor->correctPF++;
+									determine_range(a, b);
+								}
+
+								if (b >= a) //significa que o dado já está na cache e pode ser usado
+								{
+									cache_L2_hit = 1;
+									orcs_engine.processor->L2_hit++;
+								}
+							}
+						}
 					}
 				}
 
@@ -85,7 +311,7 @@ void processor_t::clock_STRIDE()
 					bool cache_stride_hit = 0;
 					bool cache_stride_empty = 0;
 					int empty_block = 0;
-					int cholast_addresssen_block = 0;
+					int chosen_block = 0;
 					uint64_t bigger = -1;
 
 					for (j = 0; j < 16; ++j)
@@ -97,7 +323,7 @@ void processor_t::clock_STRIDE()
 							orcs_engine.processor->stride[j].counter = 0;
 						}
 
-						//procuar por uma linha vazia
+						//procurar por uma linha vazia
 						if (orcs_engine.processor->stride[j].tag == 0)
 						{
 							cache_stride_empty = 1;
@@ -120,7 +346,7 @@ void processor_t::clock_STRIDE()
 						{
 							orcs_engine.processor->stride[empty_block].tag = new_instruction.opcode_address;
 							orcs_engine.processor->stride[empty_block].last_address = new_instruction.read_address;
-							orcs_engine.processor->stride[empty_block].status = -1;
+							orcs_engine.processor->stride[empty_block].confidence = 0;
 							orcs_engine.processor->stride[empty_block].counter = 0;
 
 							index = empty_block;
@@ -131,7 +357,7 @@ void processor_t::clock_STRIDE()
 						{
 							orcs_engine.processor->stride[chosen_block].tag = new_instruction.opcode_address;
 							orcs_engine.processor->stride[chosen_block].last_address = new_instruction.read_address;
-							orcs_engine.processor->stride[chosen_block].status = -1;
+							orcs_engine.processor->stride[chosen_block].confidence = 0;
 							orcs_engine.processor->stride[chosen_block].counter = 0;
 
 							index = chosen_block;
@@ -147,6 +373,7 @@ void processor_t::clock_STRIDE()
 						}
 					} //end if (!cache_stride_hit)
 
+
 					//independente de hit ou não, fazer o conjunto de instruções
 					uint64_t current_address = new_instruction.read_address;
 					uint64_t last_address = orcs_engine.processor->stride[index].last_address;
@@ -158,26 +385,33 @@ void processor_t::clock_STRIDE()
 					//verificar se esse stride bate com o que consta na tabela
 					if (stride_size == orcs_engine.processor->stride[index].stride)
 					{
-						if (orcs_engine.processor->stride[index].stride < 2)
-							orcs_engine.processor->stride[index].stride ++;
+						if (orcs_engine.processor->stride[index].confidence < 2)
+							orcs_engine.processor->stride[index].confidence ++;
 					}
-					else //caso o stride não coincida, invativar esse status
+					else //caso o stride não coincida, inativar a confiança
 					{
-						orcs_engine.processor->stride[index].stride = 0;
+						orcs_engine.processor->stride[index].confidence = 0;
+						orcs_engine.processor->stride[index].stride = stride_size;
 					}
 
-					//se o status estiver como ativo
-					if (orcs_engine.processor->stride[index].stride == 2)
+					orcs_engine.processor->stride[index].last_address = current_address;
+
+					//se o confidence estiver como ativo
+					if (orcs_engine.processor->stride[index].confidence == 2)
 					{
-						//verificar se a linha está na cache L2
+						//verificar se o dado do 4 x stride está presente na cache L2
+						uint64_t address;
+						address = orcs_engine.processor->stride[index].last_address + (4 * orcs_engine.processor->stride[index].stride);
 
-						check_L2(new_instruction.read_address);
+						//se não encontrou esse dado na cache
+						if (!check_L2(address))
+						{
+							//faz a requisição para colocar esse endereço na cache L1, passando o parâmetro 1(leitura), endereço de memória e quando esse dado estará disponível
+							put_cache_L1(1, address, orcs_engine.global_cycle+205);
+							orcs_engine.processor->total_prefetches++;
+						}
 					}
-
-
-
-
-					//orcs_engine.processor->latency += 200; //VERIFICAR
+					orcs_engine.processor->latency += 200;
 				} //end if (!cache_L1_hit && !cache_L2_hit)
 			}
 
@@ -202,7 +436,7 @@ void processor_t::clock_STRIDE()
 					if (orcs_engine.processor->CL1[index][j].tag == tag)
 					{
 						cache_L1_hit = 1;
-						orcs_engine.processor->CL1[index][j].valid = 0;
+						orcs_engine.processor->CL1[index][j].clean = 0;
 					}
 				}
 
@@ -219,7 +453,7 @@ void processor_t::clock_STRIDE()
 						if (orcs_engine.processor->CL2[index][j].tag == tag)
 						{
 							cache_L2_hit = 1;
-							orcs_engine.processor->CL2[index][j].valid = 0;
+							orcs_engine.processor->CL2[index][j].clean = 0;
 						}
 					}
 				}
@@ -228,6 +462,9 @@ void processor_t::clock_STRIDE()
 				if (!cache_L1_hit && !cache_L2_hit)
 				{
 					orcs_engine.processor->latency += 200;
+
+					//COLOCAR A LINHA NA CACHE L1, passando o parâmetro 2(escrita), o endereço para a escrita e quando esse dado estará disponível
+					put_cache_L1(2, new_instruction.write_address, orcs_engine.global_cycle+205);
 				}
 			} //end if (new_instruction.opcode_operation == INSTRUCTION_OPERATION_MEM_STORE)
 		} //end if (orcs_engine.processor->latency < 0)
@@ -241,7 +478,10 @@ void processor_t::statistics() {
 	ORCS_PRINTF("processor_t\n");
 
 	printf("---STATISTICS---\n");
-
-	printf("---ACCURACY---\n");
+	printf("Cycles: %ld\n", orcs_engine.processor->cycles);
+	printf("Prefetches: %ld\n", orcs_engine.processor->total_prefetches);
+	printf("L1 Cache Hit Ratio: %g\n", (float)orcs_engine.processor->L1_hit / (float)orcs_engine.processor->L1_access);
+	printf("L2 Cache Hit Ratio: %g\n", (float)orcs_engine.processor->L2_hit / (float)orcs_engine.processor->L2_access);
+	printf("Taxa de acertos nos prefetches feitos: %g\n", (float)orcs_engine.processor->correctPF / (float)orcs_engine.processor->total_prefetches);
 
 };
