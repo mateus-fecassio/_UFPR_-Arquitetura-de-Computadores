@@ -1,0 +1,44 @@
+End of dynamic simulation trace
+End of Simulation
+######################################################
+trace_reader_t
+fetch_instructions:200001551
+######################################################
+processor_t
+---STATISTICS---
+Cycles: 200001551
+Prefetches: 261
+L1 Cache Hit: 2483180
+L1 Cache Hit Ratio: 0.0738114
+L2 Cache Hit: 190676
+L2 Cache Hit Ratio: 0.00610868
+Prefetches CORRETOS: 255
+Prefetches INCORRETOS: 0
+Taxa de acertos nos prefetches feitos: 0.977012
+
+
+HISTOGRAMA (em número)
+< -200: 136
+-199 a -150: 0
+-149 a -100: 0
+-99 a -50: 0
+-49 a -1: 0
+0: 0
+1 a 49: 0
+50 a 99: 0
+100 a 149: 7
+150 a 199: 108
+> 200: 0
+
+HISTOGRAMA (em taxa)
+< -200: 0.533333
+-199 a -150: 0
+-149 a -100: 0
+-99 a -50: 0
+-49 a -1: 0
+0: 0
+1 a 49: 0
+50 a 99: 0
+100 a 149: 0.027451
+150 a 199: 0.423529
+> 200: 0

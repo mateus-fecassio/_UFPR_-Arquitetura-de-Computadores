@@ -485,7 +485,7 @@ void processor_t::statistics() {
 	printf("L2 Cache Hit: %ld\n", orcs_engine.processor->L2_hit);
 	printf("L2 Cache Hit Ratio: %g\n", (float)orcs_engine.processor->L2_hit / (float)orcs_engine.processor->L2_access);
 	printf("Prefetches CORRETOS: %ld\n", orcs_engine.processor->correctPF);
-	printf("Prefetches CORRETOS: %ld\n", orcs_engine.processor->incorrectPF);
+	printf("Prefetches INCORRETOS: %ld\n", orcs_engine.processor->incorrectPF);
 	printf("Taxa de acertos nos prefetches feitos: %g\n\n\n", (float)orcs_engine.processor->correctPF / (float)orcs_engine.processor->total_prefetches);
 
 	printf("HISTOGRAMA (em número)\n");
